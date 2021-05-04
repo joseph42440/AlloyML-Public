@@ -132,7 +132,7 @@ class optimiser:
             if best_loss is None or loss < best_loss:
                 best_datapoint = datapoint
                 best_loss = loss
-            print('[Step %d/%d] Best %s Loss = %f.            ' % (i+1, self.max_steps, self.loss_type, best_loss), end='\r')
+            print('[Step %d/%d] Best %s Loss = %f.' % (i+1, self.max_steps, self.loss_type, best_loss))
 
         for i in range(self.finetune_max_rounds):
             for key in [*self.categorical_inputs.keys(), *self.range_based_inputs.keys()]:
@@ -140,10 +140,10 @@ class optimiser:
                 if loss < best_loss:
                     best_datapoint = datapoint
                     best_loss = loss
-                print('[Finetune %s] Best %s Loss = %f.                ' % (key, self.loss_type, best_loss), end='\r')
+                print('[Finetune %s] Best %s Loss = %f.' % (key, self.loss_type, best_loss))
             else:
                 break
-        print('==========Scan Finished==========                                              ')
+        print('==========Scan Finished==========')
         self.printResults(best_datapoint)
 
     def calculateStep(self, best_datapoint, step_number, target_var):
