@@ -2,7 +2,10 @@ from copy import deepcopy
 import numpy as np
 from scipy.stats import truncnorm
 import pickle
-
+if 'google.colab' in str(get_ipython()):
+    from AlloyML_Public.model_paths import models
+else:
+    from model_paths import models
 
 class AlDatapoint:
     def __init__(self, settings):
@@ -83,7 +86,7 @@ class scanSettings:
 
 
 class optimiser:
-    def __init__(self, settings, models):
+    def __init__(self, settings):
         self.step_batch_size = 100
         self.step_final_std = 0.01
         self.finetune_max_rounds = 3
@@ -98,12 +101,14 @@ class optimiser:
         self.settings = settings
         self.models = models
 
+        self.run()
+
     def calculateLoss(self, datapoint):
         if self.mode == 'DoS':
             return abs(self.models['DoS'].predict(datapoint.formatForInput())[0] - self.targets['DoS'])
         elif self.mode == 'Mechanical':
             return ((abs((self.models['elongation'].predict(datapoint.formatForInput())[0] / self.targets[
-                'elongation%']) - 1) * 100 \
+                'elongation%']) - 1) * 100
                      + abs((self.models['tensile'].predict(datapoint.formatForInput())[0] / self.targets[
                         'tensile strength(MPa)']) - 1) * 100)) / 2
 
@@ -127,18 +132,18 @@ class optimiser:
             if best_loss is None or loss < best_loss:
                 best_datapoint = datapoint
                 best_loss = loss
-            print('[Step %d] Best %s Loss = %f.' % (i, self.loss_type, best_loss))
+            print('[Step %d/%d] Best %s Loss = %f.            ' % (i+1, self.max_steps, self.loss_type, best_loss), end='\r')
+
         for i in range(self.finetune_max_rounds):
-            pre_tune_loss = best_loss
             for key in [*self.categorical_inputs.keys(), *self.range_based_inputs.keys()]:
                 loss, datapoint = self.calculateStep(best_datapoint, i, key)
                 if loss < best_loss:
                     best_datapoint = datapoint
                     best_loss = loss
-                print('[Finetune %s] Best %s Loss = %f.' % (key, self.loss_type, best_loss))
+                print('[Finetune %s] Best %s Loss = %f.                ' % (key, self.loss_type, best_loss), end='\r')
             else:
                 break
-        print('==========Scan Finished==========')
+        print('==========Scan Finished==========                                              ')
         self.printResults(best_datapoint)
 
     def calculateStep(self, best_datapoint, step_number, target_var):

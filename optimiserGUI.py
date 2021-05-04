@@ -1,10 +1,52 @@
 import ipywidgets as widgets
 from ipywidgets import Layout, HBox, VBox
-from IPython.display import display
-from AlloyML_Public.optimiser import *
+from IPython.display import display, clear_output
+if 'google.colab' in str(get_ipython()):
+    from AlloyML_Public.optimiser import *
+else:
+    from optimiser import *
 
 
-def generateGUI(mode):
+def extractSettingsFromGUI(GUI_inputs, mode):
+    settings = scanSettings(mode)
+
+    for key in settings.range_based_inputs:
+        settings.range_based_inputs[key] = [GUI_inputs['range_based_inputs'][key][0].value,
+                                            GUI_inputs['range_based_inputs'][key][1].value]
+
+    if bool(settings.constant_inputs):
+        for key in GUI_inputs['constant_inputs']:
+            settings.constant_inputs[key] = GUI_inputs['constant_inputs'][key].value
+
+    for key in settings.categorical_inputs:
+        settings.categorical_inputs[key] = []
+        for index, value in enumerate(settings.categorical_inputs_info[key]['span']):
+            if GUI_inputs['categorical_inputs'][key][index].value:
+                settings.categorical_inputs[key].append(settings.categorical_inputs_info[key]['span'][index])
+
+    settings.max_steps = int(GUI_inputs["scan_settings"]["Max Steps"].value)
+
+    for key in settings.targets:
+        settings.targets[key] = GUI_inputs['scan_settings'][key].value
+    return settings
+
+def generateModeSelectionGUI(mode = 'DoS'):
+    mode_dropdown = widgets.Dropdown(
+        options=['DoS', 'Mechanical'],
+        value=mode,
+        description='<b>Select Mode:</b>',
+        style={'description_width': 'initial'},
+        disabled=False
+    )
+    display(mode_dropdown)
+    generateMainGUI(mode)
+    def on_change(change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            clear_output(wait=True)
+            generateModeSelectionGUI(change['new'])
+    mode_dropdown.observe(on_change)
+
+def generateMainGUI(mode):
     settings = scanSettings(mode)
     KEY_LABEL_WIDTH = "40px"
     TO_LABEL_WIDTH = "15px"
@@ -73,27 +115,11 @@ def generateGUI(mode):
         second_column = VBox([VBox(categorical_inputs_VBox, layout=BOTTOM_PADDING),
                               VBox(scan_settings_VBox)], layout=LEFT_RIGHT_PADDING)
     display(HBox([first_column, second_column]))
-    return GUI_inputs
 
+    run_scan_button = widgets.Button(description="Run Optimiser")
+    display(run_scan_button)
 
-def extractSettingsFromGUI(GUI_inputs, mode):
-    settings = scanSettings(mode)
-    for key in settings.range_based_inputs:
-        settings.range_based_inputs[key] = [GUI_inputs['range_based_inputs'][key][0].value,
-                                            GUI_inputs['range_based_inputs'][key][1].value]
+    def on_button_clicked(b):
+        optimiser(extractSettingsFromGUI(GUI_inputs, mode))
 
-    if bool(settings.constant_inputs):
-        for key in GUI_inputs['constant_inputs']:
-            settings.constant_inputs[key] = GUI_inputs['constant_inputs'][key].value
-
-        for key in settings.categorical_inputs:
-            settings.categorical_inputs[key] = []
-            for index, value in enumerate(settings.categorical_inputs_info[key]['span']):
-                if GUI_inputs['categorical_inputs'][key][index].value:
-                    settings.categorical_inputs[key].append(settings.categorical_inputs_info[key]['span'][index])
-
-        settings.max_steps = int(GUI_inputs["scan_settings"]["Max Steps"].value)
-        for key in settings.targets:
-            settings.targets[key] = GUI_inputs['scan_settings'][key].value
-
-    return settings
+    run_scan_button.on_click(on_button_clicked)
