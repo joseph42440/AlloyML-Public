@@ -1,7 +1,7 @@
 import ipywidgets as widgets
 from ipywidgets import Layout, HBox, VBox
 from IPython.display import display
-from optimiser import *
+from AlloyML_Public.optimiser import *
 
 
 def generateGUI(mode):
